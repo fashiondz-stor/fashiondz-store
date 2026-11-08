@@ -71,11 +71,11 @@ function displayProducts(category = 'all') {
       img.src = imageUrl
     }
 
-    img.alt = product.name || 'منتج من Fashion DZ'
+    img.alt = product.name_ar || 'منتج من Fashion DZ'
     img.loading = 'lazy'
 
     const name = document.createElement('h3')
-    name.textContent = product.name || 'منتج بدون اسم'
+    name.textContent = product.name_ar || 'منتج بدون اسم'
 
     const price = document.createElement('p')
     price.textContent = `${product.price ?? 'غير محدد'} دج`
