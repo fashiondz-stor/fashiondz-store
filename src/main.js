@@ -121,3 +121,90 @@ async function loadProducts() {
 }
 
 loadProducts()
+// زر دخول المدير
+const adminButton = document.createElement('button')
+adminButton.textContent = 'دخول المدير'
+adminButton.style.cssText = `
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 999;
+  background: #FF6500;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+`
+document.body.appendChild(adminButton)
+
+// نافذة تسجيل الدخول
+const adminPanel = document.createElement('div')
+adminPanel.style.cssText = `
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.8);
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+`
+
+adminPanel.innerHTML = `
+  <div style="background:#292929;color:#F8F5ED;padding:25px;border-radius:12px;width:100%;max-width:350px;">
+    <h2>دخول المدير</h2>
+    <form id="admin-login-form">
+      <input id="admin-email" type="email" placeholder="البريد الإلكتروني" required
+        style="display:block;width:100%;padding:12px;margin:12px 0;box-sizing:border-box;">
+      <input id="admin-password" type="password" placeholder="كلمة المرور" required
+        style="display:block;width:100%;padding:12px;margin:12px 0;box-sizing:border-box;">
+      <button type="submit" style="background:#FF6500;color:white;padding:12px;width:100%;border:0;border-radius:6px;">
+        تسجيل الدخول
+      </button>
+    </form>
+    <p id="admin-message"></p>
+    <button id="admin-close" style="padding:10px;">إغلاق</button>
+  </div>
+`
+
+document.body.appendChild(adminPanel)
+
+adminButton.addEventListener('click', () => {
+  adminPanel.style.display = 'flex'
+})
+
+document.querySelector('#admin-close').addEventListener('click', () => {
+  adminPanel.style.display = 'none'
+})
+
+// التحقق من حساب المدير
+document.querySelector('#admin-login-form').addEventListener('submit', async (event) => {
+  event.preventDefault()
+
+  const message = document.querySelector('#admin-message')
+  const email = document.querySelector('#admin-email').value
+  const password = document.querySelector('#admin-password').value
+
+  message.textContent = 'جارٍ التحقق...'
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
+
+  if (error) {
+    message.textContent = 'تعذر تسجيل الدخول. تحقق من البيانات.'
+    return
+  }
+
+  const { data: isAdmin, error: roleError } = await supabase.rpc('is_admin')
+
+  if (roleError || isAdmin !== true) {
+    await supabase.auth.signOut()
+    message.textContent = 'هذا الحساب لا يملك صلاحية المدير.'
+    return
+  }
+
+  message.textContent = 'تم تسجيل الدخول بنجاح! أنت المدير.'
+})
