@@ -14,7 +14,12 @@ document.querySelector('#app').innerHTML = `
     <h1>FASHION DZ</h1>
     <p>YOUR STYLE, YOUR CHOICE</p>
   </header>
-
+<nav class="main-nav">
+  <a href="#home">الرئيسية</a>
+  <a href="#clothing">ملابس الرجال</a>
+  <a href="#shoes">الأحذية</a>
+  <a href="#accessories">الإكسسوارات</a>
+</nav>
   <section class="hero">
     <h2>اكتشف أناقتك</h2>
     <p>مرحباً بك في Fashion DZ، وجهتك لاكتشاف أحدث الأزياء.</p>
