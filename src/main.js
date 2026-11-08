@@ -208,3 +208,154 @@ document.querySelector('#admin-login-form').addEventListener('submit', async (ev
 
   message.textContent = 'تم تسجيل الدخول بنجاح! أنت المدير.'
 })
+await renderAdminDashboard()
+// لوحة تحكم المدير
+async function renderAdminDashboard() {
+  document.querySelector('#app').innerHTML = `
+    <main style="padding:20px;background:#292929;color:#F8F5ED;min-height:100vh;">
+      <h1 style="color:#D8C3A5;">لوحة تحكم Fashion DZ</h1>
+      <h2>إضافة أو تعديل منتج</h2>
+
+      <form id="product-form">
+        <input id="product-name" placeholder="اسم المنتج" required
+          style="display:block;width:100%;padding:12px;margin:10px 0;box-sizing:border-box;">
+        <input id="product-price" type="number" min="0" placeholder="السعر بالدينار" required
+          style="display:block;width:100%;padding:12px;margin:10px 0;box-sizing:border-box;">
+        <input id="product-image" type="url" placeholder="رابط صورة المنتج" required
+          style="display:block;width:100%;padding:12px;margin:10px 0;box-sizing:border-box;">
+        <select id="product-category" style="display:block;width:100%;padding:12px;margin:10px 0;">
+          <option value="clothing">ملابس الرجال</option>
+          <option value="shoes">الأحذية</option>
+          <option value="accessories">الإكسسوارات</option>
+        </select>
+        <button type="submit" style="background:#FF6500;color:white;padding:12px;border:0;border-radius:6px;">
+          حفظ المنتج
+        </button>
+        <button type="button" id="cancel-edit" style="padding:12px;">إلغاء التعديل</button>
+      </form>
+
+      <p id="admin-status"></p>
+      <h2>المنتجات الحالية</h2>
+      <div id="admin-products">جارٍ تحميل المنتجات...</div>
+      <button id="admin-logout" style="margin-top:20px;padding:12px;">تسجيل الخروج</button>
+    </main>
+  `
+
+  let editingId = null
+  const form = document.querySelector('#product-form')
+  const status = document.querySelector('#admin-status')
+  const productsList = document.querySelector('#admin-products')
+
+  async function refreshProducts() {
+    productsList.textContent = 'جارٍ تحميل المنتجات...'
+
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (error) {
+      productsList.textContent = 'تعذر تحميل المنتجات.'
+      console.error(error)
+      return
+    }
+
+    productsList.replaceChildren()
+
+    if (!data || data.length === 0) {
+      productsList.textContent = 'لا توجد منتجات.'
+      return
+    }
+
+    data.forEach(product => {
+      const card = document.createElement('div')
+      card.style.cssText = 'background:#F8F5ED;color:#292929;padding:15px;margin:12px 0;border-radius:8px;'
+
+      const title = document.createElement('h3')
+      title.textContent = product.name_ar
+
+      const price = document.createElement('p')
+      price.textContent = `${product.price} دج`
+
+      const editButton = document.createElement('button')
+      editButton.textContent = 'تعديل'
+      editButton.style.margin = '5px'
+
+      editButton.addEventListener('click', () => {
+        editingId = product.id
+        document.querySelector('#product-name').value = product.name_ar || ''
+        document.querySelector('#product-price').value = product.price || ''
+        document.querySelector('#product-image').value = product.image_url || ''
+        document.querySelector('#product-category').value = product.category || 'clothing'
+        status.textContent = 'أنت تعدّل هذا المنتج الآن.'
+        form.scrollIntoView({ behavior: 'smooth' })
+      })
+
+      const deleteButton = document.createElement('button')
+      deleteButton.textContent = 'حذف'
+      deleteButton.style.margin = '5px'
+
+      deleteButton.addEventListener('click', async () => {
+        if (!confirm('هل تريد حذف هذا المنتج؟')) return
+
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', product.id)
+
+        if (error) {
+          status.textContent = 'تعذر حذف المنتج.'
+          console.error(error)
+          return
+        }
+
+        status.textContent = 'تم حذف المنتج.'
+        refreshProducts()
+      })
+
+      card.append(title, price, editButton, deleteButton)
+      productsList.appendChild(card)
+    })
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault()
+    status.textContent = 'جارٍ حفظ المنتج...'
+
+    const product = {
+      name_ar: document.querySelector('#product-name').value.trim(),
+      price: Number(document.querySelector('#product-price').value),
+      image_url: document.querySelector('#product-image').value.trim(),
+      category: document.querySelector('#product-category').value,
+      is_active: true
+    }
+
+    const result = editingId
+      ? await supabase.from('products').update(product).eq('id', editingId)
+      : await supabase.from('products').insert(product)
+
+    if (result.error) {
+      status.textContent = 'تعذر الحفظ. تحقق من صلاحيات قاعدة البيانات.'
+      console.error(result.error)
+      return
+    }
+
+    status.textContent = 'تم حفظ المنتج بنجاح.'
+    editingId = null
+    form.reset()
+    refreshProducts()
+  })
+
+  document.querySelector('#cancel-edit').addEventListener('click', () => {
+    editingId = null
+    form.reset()
+    status.textContent = ''
+  })
+
+  document.querySelector('#admin-logout').addEventListener('click', async () => {
+    await supabase.auth.signOut()
+    location.reload()
+  })
+
+  refreshProducts()
+      }
