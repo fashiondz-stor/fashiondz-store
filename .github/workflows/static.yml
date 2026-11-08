@@ -29,10 +29,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
       - name: Build website
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build -- --base=/fashiondz-store/
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
